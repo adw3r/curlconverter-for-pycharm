@@ -1,0 +1,505 @@
+{
+ "version": "4.12.0",
+ "cases": [
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
+   "code": "from curl_cffi import requests\n\nheaders = {\n    'accept': 'application/json',\n    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',\n    'sec-ch-ua': '\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"',\n}\n\nparams = {\n    'page': '2',\n    'q': 'hello world',\n}\n\nresponse = requests.get('https://api.example.com/v1/items', params=params, headers=headers, impersonate='chrome')\n",
+   "warnings": [
+    "URL querystring contains spaces encoded as \"%20\" which will be sent by curl_cffi as \"+\" instead: \"hello%20world\""
+   ]
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/api/login' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7' \\\n  -H 'content-type: application/json' \\\n  -b 'session=abc123; _ga=GA1.2.3.4' \\\n  -H 'origin: https://example.com' \\\n  -H 'priority: u=1, i' \\\n  --data-raw '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}'",
+   "code": "from curl_cffi import requests\n\ncookies = {\n    'session': 'abc123',\n    '_ga': 'GA1.2.3.4',\n}\n\nheaders = {\n    'accept': '*/*',\n    'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',\n    # Already added when you pass json=\n    # 'content-type': 'application/json',\n    'origin': 'https://example.com',\n    'priority': 'u=1, i',\n    # 'cookie': 'session=abc123; _ga=GA1.2.3.4',\n}\n\njson_data = {\n    'email': 'a@b.c',\n    'password': 'p@ss',\n    'remember': True,\n    'tags': [\n        1,\n        2,\n        None,\n    ],\n}\n\nresponse = requests.post('https://example.com/api/login', cookies=cookies, headers=headers, json=json_data, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/upload' -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundaryX7' --data-raw $'------WebKitFormBoundaryX7\\r\\nContent-Disposition: form-data; name=\"field\"\\r\\n\\r\\nvalue\\r\\n------WebKitFormBoundaryX7--\\r\\n'",
+   "code": "from curl_cffi import CurlMime, requests\n\nheaders = {\n    # curl_cffi sets it with the boundary when you pass multipart=\n    # 'content-type': 'multipart/form-data; boundary=----WebKitFormBoundaryX7',\n}\n\nmultipart = CurlMime()\nmultipart.addpart(name='field', data=b'value')\n\nresponse = requests.post('https://example.com/upload', headers=headers, multipart=multipart, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl -i -s -k -X $'POST' -H $'Host: target.local' -H $'Content-Type: application/x-www-form-urlencoded' -H $'Content-Length: 27' -b $'PHPSESSID=deadbeef' --data-binary $'user=admin&pass=it\\'s%20ok' $'https://target.local/login.php'",
+   "code": "from curl_cffi import requests\n\ncookies = {\n    'PHPSESSID': 'deadbeef',\n}\n\nheaders = {\n    'Host': 'target.local',\n    'Content-Type': 'application/x-www-form-urlencoded',\n    # 'Content-Length': '27',\n    # 'Cookie': 'PHPSESSID=deadbeef',\n}\n\ndata = \"user=admin&pass=it's%20ok\"\n\nresponse = requests.post(\n    'https://target.local/login.php',\n    cookies=cookies,\n    headers=headers,\n    data=data,\n    verify=False,\n    impersonate='chrome',\n)\n",
+   "warnings": [
+    "-i is not a supported option",
+    "-s is not a supported option"
+   ]
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/graphql' -X POST -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0' -H 'Accept: */*' -H 'Content-Type: application/json' -H 'Connection: keep-alive' --data-raw '{\"query\":\"{ me { id } }\",\"variables\":{}}'",
+   "code": "from curl_cffi import requests\n\nheaders = {\n    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',\n    'Accept': '*/*',\n    # Already added when you pass json=\n    # 'Content-Type': 'application/json',\n    'Connection': 'keep-alive',\n}\n\njson_data = {\n    'query': '{ me { id } }',\n    'variables': {},\n}\n\nresponse = requests.post('https://example.com/graphql', headers=headers, json=json_data, impersonate='firefox')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl -F 'file=@/tmp/a.png' -F 'name=test' https://example.com/upload",
+   "code": "from curl_cffi import CurlMime, requests\n\nmultipart = CurlMime()\nmultipart.addpart(name='file', local_path='/tmp/a.png')\nmultipart.addpart(name='name', data=b'test')\n\nresponse = requests.post('https://example.com/upload', multipart=multipart, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl -u user:secret -x http://127.0.0.1:8080 -k -L --max-time 30 https://example.com/private",
+   "code": "from curl_cffi import requests\n\nproxies = {\n    'http': 'http://127.0.0.1:8080',\n    'https': 'http://127.0.0.1:8080',\n}\n\nresponse = requests.get(\n    'https://example.com/private',\n    proxies=proxies,\n    verify=False,\n    auth=('user', 'secret'),\n    timeout=30,\n    impersonate='chrome',\n)\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl --data-urlencode 'q=hello world' --data-urlencode 'lang=uk' -G https://example.com/search",
+   "code": "from curl_cffi import requests\n\nparams = {\n    'q': 'hello world',\n    'lang': 'uk',\n}\n\nresponse = requests.get('https://example.com/search', params=params, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl -X PUT https://example.com/item/1 -H 'Authorization: Bearer eyJhbGciOi' -d 'a=1' -d 'b=2'",
+   "code": "from curl_cffi import requests\n\nheaders = {\n    'Authorization': 'Bearer eyJhbGciOi',\n    'Content-Type': 'application/x-www-form-urlencoded',\n}\n\ndata = {\n    'a': '1',\n    'b': '2',\n}\n\nresponse = requests.put('https://example.com/item/1', headers=headers, data=data, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl https://example.com -H 'X-Custom: a' -H 'X-Custom: b' --compressed --http2",
+   "code": "from curl_cffi import requests\n\nheaders = {\n    'X-Custom': 'a',\n    'X-Custom': 'b',\n}\n\nresponse = requests.get('https://example.com', headers=headers, impersonate='chrome')\n",
+   "warnings": [
+    "found 2 \"X-Custom\" headers, only the last one will be sent"
+   ]
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/api' -X DELETE",
+   "code": "from curl_cffi import requests\n\nresponse = requests.delete('https://example.com/api', impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/form' --data-raw 'a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c='",
+   "code": "from curl_cffi import requests\n\ndata = {\n    'a': 'привет',\n    'b': '✓',\n    'c': '',\n}\n\nresponse = requests.post('https://example.com/form', data=data, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/raw' --data-binary @payload.bin -H 'Content-Type: application/octet-stream'",
+   "code": "from curl_cffi import requests\n\nheaders = {\n    'Content-Type': 'application/octet-stream',\n}\n\nwith open('payload.bin', 'rb') as f:\n    data = f.read()\n\nresponse = requests.post('https://example.com/raw', headers=headers, data=data, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/x' -H 'cookie: a=1; b=\"q\"' -H 'referer: https://example.com/' --insecure",
+   "code": "from curl_cffi import requests\n\ncookies = {\n    'a': '1',\n    'b': '\"q\"',\n}\n\nheaders = {\n    # 'cookie': 'a=1; b=\"q\"',\n    'referer': 'https://example.com/',\n}\n\nresponse = requests.get('https://example.com/x', cookies=cookies, headers=headers, verify=False, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl $'https://example.com/\\u043f\\u0440\\u0438?x=\\'1\\''",
+   "code": "from curl_cffi import requests\n\nresponse = requests.get(\"https://example.com/при?x='1'\", impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://example.com/' -H $'content-type: text/plain;charset=UTF-8' --data-raw $'line1\\nline2\\ttab \\u2713'",
+   "code": "from curl_cffi import requests\n\nheaders = {\n    'content-type': 'text/plain;charset=UTF-8',\n}\n\ndata = 'line1\\nline2\\ttab ✓'.encode()\n\nresponse = requests.post('https://example.com/', headers=headers, data=data, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl -o out.html https://example.com/page",
+   "code": "from curl_cffi import requests\n\nresponse = requests.get('https://example.com/page', impersonate='chrome')\n\nwith open('out.html', 'wb') as f:\n    f.write(response.content)\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "wget https://example.com",
+   "error": "command should begin with \"curl\" but instead begins with \"wget\"\nwget https://example.com\n^^^^"
+  },
+  {
+   "target": "python-curl-cffi",
+   "curl": "curl",
+   "error": "no URL specified!"
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
+   "code": "import requests\n\nheaders = {\n    'accept': 'application/json',\n    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',\n    'sec-ch-ua': '\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"',\n}\n\nparams = {\n    'page': '2',\n    'q': 'hello world',\n}\n\nresponse = requests.get('https://api.example.com/v1/items', params=params, headers=headers)\n",
+   "warnings": [
+    "URL querystring contains spaces encoded as \"%20\" which will be sent by Requests as \"+\" instead: \"hello%20world\"",
+    "all the --header/-H names are lowercase, which means this may have been an HTTP/2 or HTTP/3 request. Requests only sends HTTP/1.1"
+   ]
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/api/login' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7' \\\n  -H 'content-type: application/json' \\\n  -b 'session=abc123; _ga=GA1.2.3.4' \\\n  -H 'origin: https://example.com' \\\n  -H 'priority: u=1, i' \\\n  --data-raw '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}'",
+   "code": "import requests\n\ncookies = {\n    'session': 'abc123',\n    '_ga': 'GA1.2.3.4',\n}\n\nheaders = {\n    'accept': '*/*',\n    'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',\n    'content-type': 'application/json',\n    'origin': 'https://example.com',\n    'priority': 'u=1, i',\n    # 'cookie': 'session=abc123; _ga=GA1.2.3.4',\n}\n\njson_data = {\n    'email': 'a@b.c',\n    'password': 'p@ss',\n    'remember': True,\n    'tags': [\n        1,\n        2,\n        None,\n    ],\n}\n\nresponse = requests.post('https://example.com/api/login', cookies=cookies, headers=headers, json=json_data)\n\n# Note: json_data will not be serialized by requests\n# exactly as it was in the original request.\n#data = '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}'\n#response = requests.post('https://example.com/api/login', cookies=cookies, headers=headers, data=data)\n",
+   "warnings": [
+    "all the --header/-H names are lowercase, which means this may have been an HTTP/2 or HTTP/3 request. Requests only sends HTTP/1.1"
+   ]
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/upload' -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundaryX7' --data-raw $'------WebKitFormBoundaryX7\\r\\nContent-Disposition: form-data; name=\"field\"\\r\\n\\r\\nvalue\\r\\n------WebKitFormBoundaryX7--\\r\\n'",
+   "code": "import requests\n\nheaders = {\n    'content-type': 'multipart/form-data; boundary=----WebKitFormBoundaryX7',\n}\n\nfiles = {\n    'field': (None, 'value'),\n}\n\nresponse = requests.post('https://example.com/upload', headers=headers, files=files)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl -i -s -k -X $'POST' -H $'Host: target.local' -H $'Content-Type: application/x-www-form-urlencoded' -H $'Content-Length: 27' -b $'PHPSESSID=deadbeef' --data-binary $'user=admin&pass=it\\'s%20ok' $'https://target.local/login.php'",
+   "code": "import requests\n\ncookies = {\n    'PHPSESSID': 'deadbeef',\n}\n\nheaders = {\n    'Host': 'target.local',\n    'Content-Type': 'application/x-www-form-urlencoded',\n    # 'Content-Length': '27',\n    # 'Cookie': 'PHPSESSID=deadbeef',\n}\n\ndata = \"user=admin&pass=it's%20ok\"\n\nresponse = requests.post('https://target.local/login.php', cookies=cookies, headers=headers, data=data, verify=False)\n",
+   "warnings": [
+    "-i is not a supported option",
+    "-s is not a supported option"
+   ]
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/graphql' -X POST -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0' -H 'Accept: */*' -H 'Content-Type: application/json' -H 'Connection: keep-alive' --data-raw '{\"query\":\"{ me { id } }\",\"variables\":{}}'",
+   "code": "import requests\n\nheaders = {\n    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',\n    'Accept': '*/*',\n    'Content-Type': 'application/json',\n    'Connection': 'keep-alive',\n}\n\njson_data = {\n    'query': '{ me { id } }',\n    'variables': {},\n}\n\nresponse = requests.post('https://example.com/graphql', headers=headers, json=json_data)\n\n# Note: json_data will not be serialized by requests\n# exactly as it was in the original request.\n#data = '{\"query\":\"{ me { id } }\",\"variables\":{}}'\n#response = requests.post('https://example.com/graphql', headers=headers, data=data)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl -F 'file=@/tmp/a.png' -F 'name=test' https://example.com/upload",
+   "code": "import requests\n\nfiles = {\n    'file': open('/tmp/a.png', 'rb'),\n    'name': (None, 'test'),\n}\n\nresponse = requests.post('https://example.com/upload', files=files)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl -u user:secret -x http://127.0.0.1:8080 -k -L --max-time 30 https://example.com/private",
+   "code": "import requests\n\nproxies = {\n    'http': 'http://127.0.0.1:8080',\n    'https': 'http://127.0.0.1:8080',\n}\n\nresponse = requests.get('https://example.com/private', proxies=proxies, verify=False, auth=('user', 'secret'), timeout=30)\n",
+   "warnings": [
+    "unlike --max-time, Requests doesn't have a timeout for the whole request, only for the connect and the read"
+   ]
+  },
+  {
+   "target": "python",
+   "curl": "curl --data-urlencode 'q=hello world' --data-urlencode 'lang=uk' -G https://example.com/search",
+   "code": "import requests\n\nparams = {\n    'q': 'hello world',\n    'lang': 'uk',\n}\n\nresponse = requests.get('https://example.com/search', params=params)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl -X PUT https://example.com/item/1 -H 'Authorization: Bearer eyJhbGciOi' -d 'a=1' -d 'b=2'",
+   "code": "import requests\n\nheaders = {\n    'Authorization': 'Bearer eyJhbGciOi',\n    'Content-Type': 'application/x-www-form-urlencoded',\n}\n\ndata = {\n    'a': '1',\n    'b': '2',\n}\n\nresponse = requests.put('https://example.com/item/1', headers=headers, data=data)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl https://example.com -H 'X-Custom: a' -H 'X-Custom: b' --compressed --http2",
+   "code": "import requests\n\nheaders = {\n    'X-Custom': 'a',\n    'X-Custom': 'b',\n}\n\nresponse = requests.get('https://example.com', headers=headers)\n",
+   "warnings": [
+    "found 2 \"X-Custom\" headers, only the last one will be sent",
+    "this was an HTTP/2 request but requests only supports HTTP/1.1"
+   ]
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/api' -X DELETE",
+   "code": "import requests\n\nresponse = requests.delete('https://example.com/api')\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/form' --data-raw 'a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c='",
+   "code": "import requests\n\ndata = {\n    'a': 'привет',\n    'b': '✓',\n    'c': '',\n}\n\nresponse = requests.post('https://example.com/form', data=data)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/raw' --data-binary @payload.bin -H 'Content-Type: application/octet-stream'",
+   "code": "import requests\n\nheaders = {\n    'Content-Type': 'application/octet-stream',\n}\n\nwith open('payload.bin', 'rb') as f:\n    data = f.read()\n\nresponse = requests.post('https://example.com/raw', headers=headers, data=data)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/x' -H 'cookie: a=1; b=\"q\"' -H 'referer: https://example.com/' --insecure",
+   "code": "import requests\n\ncookies = {\n    'a': '1',\n    'b': '\"q\"',\n}\n\nheaders = {\n    # 'cookie': 'a=1; b=\"q\"',\n    'referer': 'https://example.com/',\n}\n\nresponse = requests.get('https://example.com/x', cookies=cookies, headers=headers, verify=False)\n",
+   "warnings": [
+    "all the --header/-H names are lowercase, which means this may have been an HTTP/2 or HTTP/3 request. Requests only sends HTTP/1.1"
+   ]
+  },
+  {
+   "target": "python",
+   "curl": "curl $'https://example.com/\\u043f\\u0440\\u0438?x=\\'1\\''",
+   "code": "import requests\n\nresponse = requests.get(\"https://example.com/при?x='1'\")\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://example.com/' -H $'content-type: text/plain;charset=UTF-8' --data-raw $'line1\\nline2\\ttab \\u2713'",
+   "code": "import requests\n\nheaders = {\n    'content-type': 'text/plain;charset=UTF-8',\n}\n\ndata = 'line1\\nline2\\ttab ✓'.encode()\n\nresponse = requests.post('https://example.com/', headers=headers, data=data)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "curl -o out.html https://example.com/page",
+   "code": "import requests\n\nresponse = requests.get('https://example.com/page')\n\nwith open('out.html', 'wb') as f:\n    f.write(response.content)\n",
+   "warnings": []
+  },
+  {
+   "target": "python",
+   "curl": "wget https://example.com",
+   "error": "command should begin with \"curl\" but instead begins with \"wget\"\nwget https://example.com\n^^^^"
+  },
+  {
+   "target": "python",
+   "curl": "curl",
+   "error": "no URL specified!"
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('api.example.com')\nheaders = {\n    'accept': 'application/json',\n    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',\n    'sec-ch-ua': '\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"',\n}\nconn.request('GET', '/v1/items?page=2&q=hello%20world', headers=headers)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/api/login' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7' \\\n  -H 'content-type: application/json' \\\n  -b 'session=abc123; _ga=GA1.2.3.4' \\\n  -H 'origin: https://example.com' \\\n  -H 'priority: u=1, i' \\\n  --data-raw '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}'",
+   "code": "import http.client\nimport json\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'accept': '*/*',\n    'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',\n    'content-type': 'application/json',\n    'origin': 'https://example.com',\n    'priority': 'u=1, i',\n    'cookie': 'session=abc123; _ga=GA1.2.3.4',\n}\njson_data = {\n    'email': 'a@b.c',\n    'password': 'p@ss',\n    'remember': True,\n    'tags': [\n        1,\n        2,\n        None,\n    ],\n}\nconn.request(\n    'POST',\n    '/api/login',\n    json.dumps(json_data),\n    # '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}',\n    headers\n)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/upload' -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundaryX7' --data-raw $'------WebKitFormBoundaryX7\\r\\nContent-Disposition: form-data; name=\"field\"\\r\\n\\r\\nvalue\\r\\n------WebKitFormBoundaryX7--\\r\\n'",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'content-type': 'multipart/form-data; boundary=----WebKitFormBoundaryX7',\n}\nconn.request(\n    'POST',\n    '/upload',\n    '------WebKitFormBoundaryX7\\r\\nContent-Disposition: form-data; name=\"field\"\\r\\n\\r\\nvalue\\r\\n------WebKitFormBoundaryX7--\\r\\n',\n    headers\n)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl -i -s -k -X $'POST' -H $'Host: target.local' -H $'Content-Type: application/x-www-form-urlencoded' -H $'Content-Length: 27' -b $'PHPSESSID=deadbeef' --data-binary $'user=admin&pass=it\\'s%20ok' $'https://target.local/login.php'",
+   "code": "import http.client\nimport ssl\n\nconn = http.client.HTTPSConnection('target.local', context=ssl._create_unverified_context())\nheaders = {\n    'Host': 'target.local',\n    'Content-Type': 'application/x-www-form-urlencoded',\n    'Content-Length': '27',\n    'Cookie': 'PHPSESSID=deadbeef',\n}\nconn.request('POST', '/login.php', \"user=admin&pass=it's%20ok\", headers)\nresponse = conn.getresponse()\n",
+   "warnings": [
+    "-i is not a supported option",
+    "-s is not a supported option"
+   ]
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/graphql' -X POST -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0' -H 'Accept: */*' -H 'Content-Type: application/json' -H 'Connection: keep-alive' --data-raw '{\"query\":\"{ me { id } }\",\"variables\":{}}'",
+   "code": "import http.client\nimport json\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',\n    'Accept': '*/*',\n    'Content-Type': 'application/json',\n    'Connection': 'keep-alive',\n}\njson_data = {\n    'query': '{ me { id } }',\n    'variables': {},\n}\nconn.request(\n    'POST',\n    '/graphql',\n    json.dumps(json_data),\n    # '{\"query\":\"{ me { id } }\",\"variables\":{}}',\n    headers\n)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl -F 'file=@/tmp/a.png' -F 'name=test' https://example.com/upload",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nconn.request('POST', '/upload')\nresponse = conn.getresponse()\n",
+   "warnings": [
+    "-F is not a supported option",
+    "-F is not a supported option"
+   ]
+  },
+  {
+   "target": "python-http",
+   "curl": "curl -u user:secret -x http://127.0.0.1:8080 -k -L --max-time 30 https://example.com/private",
+   "code": "import http.client\nimport \nimport ssl\n\nconn = http.client.HTTPSConnection('example.com', timeout=30, context=ssl._create_unverified_context())\nheaders = {\n    'Authorization': 'Basic dXNlcjpzZWNyZXQ=',\n}\nconn.request('GET', '/private', headers=headers)\nresponse = conn.getresponse()\n",
+   "warnings": [
+    "-x is not a supported option",
+    "-L is not a supported option"
+   ]
+  },
+  {
+   "target": "python-http",
+   "curl": "curl --data-urlencode 'q=hello world' --data-urlencode 'lang=uk' -G https://example.com/search",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nconn.request('GET', '/search?q=hello+world&lang=uk')\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl -X PUT https://example.com/item/1 -H 'Authorization: Bearer eyJhbGciOi' -d 'a=1' -d 'b=2'",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'Authorization': 'Bearer eyJhbGciOi',\n    'Content-Type': 'application/x-www-form-urlencoded',\n}\nconn.request('PUT', '/item/1', 'a=1&b=2', headers)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl https://example.com -H 'X-Custom: a' -H 'X-Custom: b' --compressed --http2",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'X-Custom': 'a',\n    'X-Custom': 'b',\n}\nconn.request('GET', '', headers=headers)\nresponse = conn.getresponse()\n",
+   "warnings": [
+    "--compressed is not a supported option",
+    "--http2 is not a supported option",
+    "found 2 \"X-Custom\" headers, only the last one will be sent"
+   ]
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/api' -X DELETE",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nconn.request('DELETE', '/api')\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/form' --data-raw 'a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c='",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'Content-Type': 'application/x-www-form-urlencoded',\n}\nconn.request(\n    'POST',\n    '/form',\n    'a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c=',\n    headers\n)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/raw' --data-binary @payload.bin -H 'Content-Type: application/octet-stream'",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'Content-Type': 'application/octet-stream',\n}\nconn.request('POST', '/raw', open('payload.bin', 'rb'), headers)\nresponse = conn.getresponse()\n",
+   "warnings": [
+    "the generated data content is wrong, \"@payload.bin\" means read the file \"payload.bin\""
+   ]
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/x' -H 'cookie: a=1; b=\"q\"' -H 'referer: https://example.com/' --insecure",
+   "code": "import http.client\nimport ssl\n\nconn = http.client.HTTPSConnection('example.com', context=ssl._create_unverified_context())\nheaders = {\n    'cookie': 'a=1; b=\"q\"',\n    'referer': 'https://example.com/',\n}\nconn.request('GET', '/x', headers=headers)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl $'https://example.com/\\u043f\\u0440\\u0438?x=\\'1\\''",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nconn.request('GET', \"/при?x='1'\")\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl 'https://example.com/' -H $'content-type: text/plain;charset=UTF-8' --data-raw $'line1\\nline2\\ttab \\u2713'",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nheaders = {\n    'content-type': 'text/plain;charset=UTF-8',\n}\nconn.request('POST', '/', 'line1\\nline2\\ttab ✓', headers)\nresponse = conn.getresponse()\n",
+   "warnings": []
+  },
+  {
+   "target": "python-http",
+   "curl": "curl -o out.html https://example.com/page",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('example.com')\nconn.request('GET', '/page')\nresponse = conn.getresponse()\n",
+   "warnings": [
+    "-o is not a supported option"
+   ]
+  },
+  {
+   "target": "python-http",
+   "curl": "wget https://example.com",
+   "error": "command should begin with \"curl\" but instead begins with \"wget\"\nwget https://example.com\n^^^^"
+  },
+  {
+   "target": "python-http",
+   "curl": "curl",
+   "error": "no URL specified!"
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"GET\", \"https://api.example.com/v1/items?page=2&q=hello%20world\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"accept\", \"application/json\")\n\treq.Header.Set(\"user-agent\", \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36\")\n\treq.Header.Set(\"sec-ch-ua\", `\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"`)\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/api/login' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7' \\\n  -H 'content-type: application/json' \\\n  -b 'session=abc123; _ga=GA1.2.3.4' \\\n  -H 'origin: https://example.com' \\\n  -H 'priority: u=1, i' \\\n  --data-raw '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}'",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"strings\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\tvar data = strings.NewReader(`{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}`)\n\treq, err := http.NewRequest(\"POST\", \"https://example.com/api/login\", data)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"accept\", \"*/*\")\n\treq.Header.Set(\"accept-language\", \"uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7\")\n\treq.Header.Set(\"content-type\", \"application/json\")\n\treq.Header.Set(\"origin\", \"https://example.com\")\n\treq.Header.Set(\"priority\", \"u=1, i\")\n\treq.Header.Set(\"cookie\", \"session=abc123; _ga=GA1.2.3.4\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/upload' -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundaryX7' --data-raw $'------WebKitFormBoundaryX7\\r\\nContent-Disposition: form-data; name=\"field\"\\r\\n\\r\\nvalue\\r\\n------WebKitFormBoundaryX7--\\r\\n'",
+   "code": "package main\n\nimport (\n\t\"bytes\"\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"mime/multipart\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tform := new(bytes.Buffer)\n\twriter := multipart.NewWriter(form)\n\tformField, err := writer.CreateFormField(\"field\")\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\t_, err = formField.Write([]byte(\"value\"))\n\n\twriter.Close()\n\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"POST\", \"https://example.com/upload\", form)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"Content-Type\", writer.FormDataContentType())\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl -i -s -k -X $'POST' -H $'Host: target.local' -H $'Content-Type: application/x-www-form-urlencoded' -H $'Content-Length: 27' -b $'PHPSESSID=deadbeef' --data-binary $'user=admin&pass=it\\'s%20ok' $'https://target.local/login.php'",
+   "code": "package main\n\nimport (\n\t\"crypto/tls\"\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"strings\"\n)\n\nfunc main() {\n\ttr := &http.Transport{\n\t\tTLSClientConfig: &tls.Config{InsecureSkipVerify: true},\n\t}\n\tclient := &http.Client{Transport: tr}\n\tvar data = strings.NewReader(`user=admin&pass=it's%20ok`)\n\treq, err := http.NewRequest(\"POST\", \"https://target.local/login.php\", data)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"Host\", \"target.local\")\n\treq.Header.Set(\"Content-Type\", \"application/x-www-form-urlencoded\")\n\treq.Header.Set(\"Content-Length\", \"27\")\n\treq.Header.Set(\"Cookie\", \"PHPSESSID=deadbeef\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": [
+    "-i is not a supported option",
+    "-s is not a supported option"
+   ]
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/graphql' -X POST -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0' -H 'Accept: */*' -H 'Content-Type: application/json' -H 'Connection: keep-alive' --data-raw '{\"query\":\"{ me { id } }\",\"variables\":{}}'",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"strings\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\tvar data = strings.NewReader(`{\"query\":\"{ me { id } }\",\"variables\":{}}`)\n\treq, err := http.NewRequest(\"POST\", \"https://example.com/graphql\", data)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"User-Agent\", \"Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0\")\n\treq.Header.Set(\"Accept\", \"*/*\")\n\treq.Header.Set(\"Content-Type\", \"application/json\")\n\treq.Header.Set(\"Connection\", \"keep-alive\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl -F 'file=@/tmp/a.png' -F 'name=test' https://example.com/upload",
+   "code": "package main\n\nimport (\n\t\"bytes\"\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"mime/multipart\"\n\t\"net/http\"\n\t\"os\"\n\t\"path/filepath\"\n)\n\nfunc main() {\n\tform := new(bytes.Buffer)\n\twriter := multipart.NewWriter(form)\n\tfw, err := writer.CreateFormFile(\"file\", filepath.Base(\"/tmp/a.png\"))\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfd, err := os.Open(\"/tmp/a.png\")\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer fd.Close()\n\t_, err = io.Copy(fw, fd)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\n\tformField, err := writer.CreateFormField(\"name\")\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\t_, err = formField.Write([]byte(\"test\"))\n\n\twriter.Close()\n\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"POST\", \"https://example.com/upload\", form)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"Content-Type\", writer.FormDataContentType())\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl -u user:secret -x http://127.0.0.1:8080 -k -L --max-time 30 https://example.com/private",
+   "code": "package main\n\nimport (\n\t\"crypto/tls\"\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"time\"\n)\n\nfunc main() {\n\ttr := &http.Transport{\n\t\tTLSClientConfig: &tls.Config{InsecureSkipVerify: true},\n\t}\n\tclient := &http.Client{\n\t\tTransport: tr,\n\t\tTimeout: 30 * time.Second,\n\t}\n\treq, err := http.NewRequest(\"GET\", \"https://example.com/private\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.SetBasicAuth(\"user\", \"secret\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": [
+    "-x is not a supported option",
+    "-L is not a supported option"
+   ]
+  },
+  {
+   "target": "go",
+   "curl": "curl --data-urlencode 'q=hello world' --data-urlencode 'lang=uk' -G https://example.com/search",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"GET\", \"https://example.com/search?q=hello+world&lang=uk\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl -X PUT https://example.com/item/1 -H 'Authorization: Bearer eyJhbGciOi' -d 'a=1' -d 'b=2'",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"strings\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\tvar data = strings.NewReader(`a=1&b=2`)\n\treq, err := http.NewRequest(\"PUT\", \"https://example.com/item/1\", data)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"Authorization\", \"Bearer eyJhbGciOi\")\n\treq.Header.Set(\"Content-Type\", \"application/x-www-form-urlencoded\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl https://example.com -H 'X-Custom: a' -H 'X-Custom: b' --compressed --http2",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"GET\", \"https://example.com\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"X-Custom\", \"a\")\n\treq.Header.Set(\"X-Custom\", \"b\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": [
+    "--http2 is not a supported option",
+    "found 2 \"X-Custom\" headers, only the last one will be sent"
+   ]
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/api' -X DELETE",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"DELETE\", \"https://example.com/api\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/form' --data-raw 'a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c='",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"strings\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\tvar data = strings.NewReader(`a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c=`)\n\treq, err := http.NewRequest(\"POST\", \"https://example.com/form\", data)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"Content-Type\", \"application/x-www-form-urlencoded\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/raw' --data-binary @payload.bin -H 'Content-Type: application/octet-stream'",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"strings\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\tvar data = strings.NewReader(`@payload.bin`)\n\treq, err := http.NewRequest(\"POST\", \"https://example.com/raw\", data)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"Content-Type\", \"application/octet-stream\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": [
+    "the generated data content is wrong, \"@payload.bin\" means read the file \"payload.bin\""
+   ]
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/x' -H 'cookie: a=1; b=\"q\"' -H 'referer: https://example.com/' --insecure",
+   "code": "package main\n\nimport (\n\t\"crypto/tls\"\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\ttr := &http.Transport{\n\t\tTLSClientConfig: &tls.Config{InsecureSkipVerify: true},\n\t}\n\tclient := &http.Client{Transport: tr}\n\treq, err := http.NewRequest(\"GET\", \"https://example.com/x\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"cookie\", `a=1; b=\"q\"`)\n\treq.Header.Set(\"referer\", \"https://example.com/\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl $'https://example.com/\\u043f\\u0440\\u0438?x=\\'1\\''",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"GET\", \"https://example.com/при?x='1'\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://example.com/' -H $'content-type: text/plain;charset=UTF-8' --data-raw $'line1\\nline2\\ttab \\u2713'",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n\t\"strings\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\tvar data = strings.NewReader(`line1\nline2\ttab ✓`)\n\treq, err := http.NewRequest(\"POST\", \"https://example.com/\", data)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"content-type\", \"text/plain;charset=UTF-8\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": []
+  },
+  {
+   "target": "go",
+   "curl": "curl -o out.html https://example.com/page",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"GET\", \"https://example.com/page\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": [
+    "-o is not a supported option"
+   ]
+  },
+  {
+   "target": "go",
+   "curl": "wget https://example.com",
+   "error": "command should begin with \"curl\" but instead begins with \"wget\"\nwget https://example.com\n^^^^"
+  },
+  {
+   "target": "go",
+   "curl": "curl",
+   "error": "no URL specified!"
+  }
+ ]
+}

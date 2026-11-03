@@ -1,0 +1,21 @@
+[
+  "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
+  "curl 'https://example.com/api/login' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7' \\\n  -H 'content-type: application/json' \\\n  -b 'session=abc123; _ga=GA1.2.3.4' \\\n  -H 'origin: https://example.com' \\\n  -H 'priority: u=1, i' \\\n  --data-raw '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}'",
+  "curl 'https://example.com/upload' -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundaryX7' --data-raw $'------WebKitFormBoundaryX7\\r\\nContent-Disposition: form-data; name=\"field\"\\r\\n\\r\\nvalue\\r\\n------WebKitFormBoundaryX7--\\r\\n'",
+  "curl -i -s -k -X $'POST' -H $'Host: target.local' -H $'Content-Type: application/x-www-form-urlencoded' -H $'Content-Length: 27' -b $'PHPSESSID=deadbeef' --data-binary $'user=admin&pass=it\\'s%20ok' $'https://target.local/login.php'",
+  "curl 'https://example.com/graphql' -X POST -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0' -H 'Accept: */*' -H 'Content-Type: application/json' -H 'Connection: keep-alive' --data-raw '{\"query\":\"{ me { id } }\",\"variables\":{}}'",
+  "curl -F 'file=@/tmp/a.png' -F 'name=test' https://example.com/upload",
+  "curl -u user:secret -x http://127.0.0.1:8080 -k -L --max-time 30 https://example.com/private",
+  "curl --data-urlencode 'q=hello world' --data-urlencode 'lang=uk' -G https://example.com/search",
+  "curl -X PUT https://example.com/item/1 -H 'Authorization: Bearer eyJhbGciOi' -d 'a=1' -d 'b=2'",
+  "curl https://example.com -H 'X-Custom: a' -H 'X-Custom: b' --compressed --http2",
+  "curl 'https://example.com/api' -X DELETE",
+  "curl 'https://example.com/form' --data-raw 'a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c='",
+  "curl 'https://example.com/raw' --data-binary @payload.bin -H 'Content-Type: application/octet-stream'",
+  "curl 'https://example.com/x' -H 'cookie: a=1; b=\"q\"' -H 'referer: https://example.com/' --insecure",
+  "curl $'https://example.com/\\u043f\\u0440\\u0438?x=\\'1\\''",
+  "curl 'https://example.com/' -H $'content-type: text/plain;charset=UTF-8' --data-raw $'line1\\nline2\\ttab \\u2713'",
+  "curl -o out.html https://example.com/page",
+  "wget https://example.com",
+  "curl"
+]

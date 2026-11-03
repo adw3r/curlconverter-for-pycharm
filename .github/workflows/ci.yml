@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    name: curlconverter bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Committed bundles are up to date
+        run: |
+          npm run build
+          git diff --exit-code -- ../plugin/src/main/resources/curlconverter
+      - name: Bundle == official curlconverter (Node)
+        run: npm run test:diff
+      - name: Bundle == official curlconverter (headless Chromium, like JCEF)
+        run: |
+          npm i --no-save playwright@1.56.0
+          npx playwright install --with-deps chromium
+          npm run test:browser
+      - name: Real curl vs generated curl_cffi code
+        run: |
+          pip install curl_cffi==0.17.0
+          npm run test:e2e
+
+  plugin:
+    name: plugin (PyCharm tests, Plugin Verifier)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Xvfb for JCEF
+        run: sudo apt-get update -q && sudo apt-get install -yq xvfb
+      - name: Build, test (real JCEF in PyCharm 2024.2.6), verify
+        run: xvfb-run -a ./gradlew buildPlugin test verifyPlugin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: plugin/build/distributions/*.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-reports
+          path: |
+            plugin/build/reports/
+            plugin/.intellijPlatform/sandbox/*/*/log-test/
+
+  release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [bundle, plugin]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugin-zip
+          path: dist
+      - name: Tag matches pluginVersion
+        run: |
+          version=$(sed -n 's/^pluginVersion *= *//p' plugin/gradle.properties)
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != pluginVersion $version"; exit 1; }
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
+          test -s notes.md
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "$GITHUB_REF_NAME" --notes-file notes.md

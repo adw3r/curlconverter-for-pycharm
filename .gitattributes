@@ -1,0 +1,7 @@
+# Built by js/build.mjs; CI checks they are up to date.
+plugin/src/main/resources/curlconverter/curlconverter.browser.js linguist-generated=true -diff
+plugin/src/main/resources/curlconverter/curlconverter.node.cjs linguist-generated=true -diff
+plugin/src/test/resources/expected.json linguist-generated=true
+
+plugin/gradlew text eol=lf
+*.bat text eol=crlf

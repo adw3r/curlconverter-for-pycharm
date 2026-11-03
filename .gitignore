@@ -1,0 +1,16 @@
+# build outputs
+js/node_modules/
+plugin/build/
+plugin/.gradle/
+plugin/.intellijPlatform/
+plugin/.kotlin/
+__pycache__/
+*.log
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# local IDE installs used for -PlocalIde / -PverifyIde
+ide/

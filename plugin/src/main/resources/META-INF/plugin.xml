@@ -1,0 +1,49 @@
+<idea-plugin>
+  <id>tech.adw3r.curlconverter</id>
+  <name>curlconverter</name>
+  <vendor url="https://github.com/adw3r/curlconverter-for-pycharm">adw3r</vendor>
+
+  <description><![CDATA[
+    Converts cURL commands to Python and 40+ other languages with the bundled
+    <a href="https://github.com/curlconverter/curlconverter">curlconverter</a> — the same converter that powers
+    curlconverter.com — fully offline. Python defaults to
+    <a href="https://github.com/lexiforest/curl_cffi">curl_cffi</a> (browser impersonation, file uploads via
+    <code>CurlMime</code>); Python (requests) and the other curlconverter targets are in the settings.
+    <ul>
+      <li><b>Editor context menu → Convert cURL to Python (curl_cffi)</b>: replaces the selected command, or the one at the caret.
+          In a scratch file, the scratch is switched to <code>.py</code>.</li>
+      <li><b>Tools → curlconverter → New Python Scratch from Clipboard cURL</b>.</li>
+      <li>Target language, curl_cffi impersonation, engine and warnings: <b>Settings → Tools → curlconverter</b>.</li>
+    </ul>
+    Runs in the IDE's built-in Chromium (JCEF); falls back to Node.js if JCEF is unavailable.
+    <br>Source, issues and releases: <a href="https://github.com/adw3r/curlconverter-for-pycharm">github.com/adw3r/curlconverter-for-pycharm</a>
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <!-- Since 2026.2 JCEF lives in the bundled "Web Browser (JCEF)" plugin (alias exists since 2025.3.1).
+       Optional, so older IDEs (JCEF in the core platform) still load the plugin; without it → Node.js. -->
+  <depends optional="true" config-file="curlconverter-jcef.xml">com.intellij.modules.jcef</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationConfigurable parentId="tools" id="tech.adw3r.curlconverter"
+                             instance="tech.adw3r.curlconverter.CurlConverterConfigurable"
+                             displayName="curlconverter"/>
+    <notificationGroup id="curlconverter" displayType="BALLOON"/>
+  </extensions>
+
+  <actions>
+    <action id="curlconverter.Convert" class="tech.adw3r.curlconverter.ConvertCurlAction"
+            text="Convert cURL to Code"
+            description="Replace the selected cURL command, or the one at the caret, with code (curlconverter)">
+      <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+    </action>
+    <action id="curlconverter.ScratchFromClipboard" class="tech.adw3r.curlconverter.NewScratchFromClipboardAction"
+            text="New Scratch from Clipboard cURL"
+            description="Convert the cURL command on the clipboard into a new scratch file (curlconverter)"/>
+    <group id="curlconverter.Tools" text="curlconverter" popup="true">
+      <reference ref="curlconverter.ScratchFromClipboard"/>
+      <reference ref="curlconverter.Convert"/>
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </group>
+  </actions>
+</idea-plugin>
