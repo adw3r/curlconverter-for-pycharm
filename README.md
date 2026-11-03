@@ -156,9 +156,14 @@ pip install curl_cffi && npm run test:e2e # real curl vs generated curl_cffi cod
 npm run expected                          # refresh plugin/src/test/resources/expected.json
 ```
 
-CI runs all of the above on every push. Pushing a tag `vX.Y.Z` that matches `pluginVersion` in
-`plugin/gradle.properties` publishes a GitHub release with the zip; notes come from
-[CHANGELOG.md](CHANGELOG.md).
+CI runs all of the above on every push.
+
+**Releasing:**
+
+1. Bump `pluginVersion` in `plugin/gradle.properties` and add a `## [X.Y.Z]` section to
+   [CHANGELOG.md](CHANGELOG.md).
+2. Push a tag `vX.Y.Z`, or create a release with that tag on GitHub.
+3. CI builds and tests the zip and attaches it to the release, with notes from the changelog.
 
 **Updating curlconverter:**
 
