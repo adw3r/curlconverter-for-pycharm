@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-11-11
 
 ### Added
 - **Python (curl_cffi, async class)** target: a `curl_cffi.AsyncSession` subclass with one `async def` per
