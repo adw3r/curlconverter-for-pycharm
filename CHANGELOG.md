@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Python (curl_cffi, async class)** target: a `curl_cffi.AsyncSession` subclass with one `async def` per
+  request (`--next` adds more) and a `main()` that runs them. Plain values of `params`, `data` and
+  `json_data` become method arguments whose defaults are the values from the curl command.
+
 ## [1.1.0] - 2026-11-03
 
 ### Added

@@ -23,6 +23,7 @@ BUNDLE = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(
     os.path.dirname(__file__), "../../plugin/src/main/resources/curlconverter/curlconverter.node.cjs"))
 
 RECORDED = []
+TARGETS = ["python-curl-cffi", "python-curl-cffi-async"]
 
 
 class Recorder(BaseHTTPRequestHandler):
@@ -141,11 +142,16 @@ def main():
     url = f"http://127.0.0.1:{server.server_address[1]}"
 
     failures = 0
-    for i, case in enumerate(CASES):
+    # The async class target (AsyncSession subclass, run through its generated main()) must send the same requests.
+    for i, (target, case) in enumerate((t, c) for t in TARGETS for c in CASES):
         template, mode, must_mention = case if isinstance(case, tuple) else (case, "exact", None)
         curl = template.format(URL=url)
-        conv = json.loads(subprocess.run(["node", BUNDLE, "python-curl-cffi", json.dumps({"impersonate": "none"})],
+        conv = json.loads(subprocess.run(["node", BUNDLE, target, json.dumps({"impersonate": "none"})],
                                          input=curl.encode(), capture_output=True, check=True).stdout)
+        if target != TARGETS[0] and "class " not in conv.get("code", "class "):
+            print(f"[{i}] {target}: no class in the generated code\n{conv['code']}")
+            failures += 1
+            continue
         if "error" in conv:
             print(f"[{i}] CONVERT ERROR {conv['error']}\n    {curl}")
             failures += 1
@@ -173,10 +179,10 @@ def main():
             if not (same_meaning and mentioned):
                 a["body-meaning"], b["body-meaning"] = True, f"same={same_meaning} mentioned={mentioned}"
         if a == b:
-            print(f"[{i}] ok   {'' if mode == 'exact' else '(' + mode + ') '}{template[:110]}")
+            print(f"[{i}] ok   {target} {'' if mode == 'exact' else '(' + mode + ') '}{template[:90]}")
         else:
             failures += 1
-            print(f"[{i}] DIFF {curl}\n--- generated:\n{conv['code']}")
+            print(f"[{i}] DIFF {target} {curl}\n--- generated:\n{conv['code']}")
             for k in a:
                 if a[k] != b.get(k):
                     print(f"    {k}:\n      curl:      {a[k]!r}\n      curl_cffi: {b.get(k)!r}")
@@ -196,7 +202,7 @@ def main():
         print(f"impersonate='chrome' run ok, User-Agent: {ua[:60]}…")
 
     server.shutdown()
-    print(f"\nall {len(CASES)} cases match curl" if failures == 0 else f"\n{failures} failure(s)")
+    print(f"\nall {len(CASES)} cases x {len(TARGETS)} targets match curl" if failures == 0 else f"\n{failures} failure(s)")
     sys.exit(1 if failures else 0)
 
 

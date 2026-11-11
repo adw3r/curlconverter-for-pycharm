@@ -1012,7 +1012,8 @@ function pickImpersonate(request, options) {
     }
     return "chrome"; // also Edge/Opera/Brave: same Chromium network stack
 }
-function requestToPython(request, warnings = [], imports, thirdPartyImports, options) {
+function requestToPython(request, warnings = [], imports, thirdPartyImports, options, asyncCalls = []) {
+    const asyncClass = !!(options && options.asyncClass);
     const osVars = {};
     const commentedOutHeaders = {
         // TODO: add a warning why this should be commented out?
@@ -1460,13 +1461,20 @@ function requestToPython(request, warnings = [], imports, thirdPartyImports, opt
             args.push("impersonate=" + reprStr(impersonate));
         }
         let requestLine = "";
-        const isSession = request.cookieJar; // curl_cffi: max_redirects= doesn't need a Session
+        // curl_cffi async class: the class itself is the session, so no `with requests.Session()`.
+        const isSession = request.cookieJar && !asyncClass; // curl_cffi: max_redirects= doesn't need a Session
         const indentLevel = isSession ? 1 : 0;
+        if (urlObjIndex === 0) {
+            asyncCalls.push({ fn, url: urlObj.url });
+        }
         if (isSession && urlObjIndex === 0) {
             requestLine += "with requests.Session() as session:\n";
             if (request.cookieJar) {
                 requestLine += `    session.cookies = cookies\n`;
             }
+        }
+        else if (asyncClass && request.cookieJar && urlObjIndex === 0) {
+            requestLine += "self.cookies = cookies\n";
         }
         if (request.urls.length > 1) {
             if (urlParamsStr) {
@@ -1489,7 +1497,7 @@ function requestToPython(request, warnings = [], imports, thirdPartyImports, opt
                 requestLine += indent(uploadFileLine, indentLevel);
             }
         }
-        const fnToCall = "response = " + (isSession ? "session" : "requests") + "." + fn;
+        const fnToCall = "response = " + (asyncClass ? "await self" : isSession ? "session" : "requests") + "." + fn;
         requestLine += indent(fnToCall + joinArgs(args) + "\n", indentLevel);
         if (jsonDataString && dataString && !urlObj.uploadFile) {
             // Adding empty lines to a "with" block breaks the code when pasted in the REPL
@@ -1532,12 +1540,13 @@ function requestToPython(request, warnings = [], imports, thirdPartyImports, opt
     pythonCode += requestLines.join(extraEmptyLine ? "\n" : "");
     if (request.cookieJar) {
         // curl_cffi: session.cookies = jar copies it, so copy the cookies back before saving
-        let cookieSaveLine = "for cookie in session.cookies.jar:\n    cookies.set_cookie(cookie)\ncookies.save(";
+        let cookieSaveLine = "for cookie in " + (asyncClass ? "self" : "session") +
+            ".cookies.jar:\n    cookies.set_cookie(cookie)\ncookies.save(";
         if (!eq(request.cookieJar, cookieFile)) {
             cookieSaveLine += repr(request.cookieJar, osVars, imports) + ", ";
         }
         cookieSaveLine += "ignore_discard=True, ignore_expires=True)\n"; // TODO: necessary?
-        pythonCode += indent(cookieSaveLine, 1);
+        pythonCode += indent(cookieSaveLine, asyncClass ? 0 : 1);
     }
     // curl_cffi: speaks HTTP/2 (and HTTP/3 with http_version), so no HTTP/1.1-only warnings
     // It would be more correct to run the commands whenever we need
@@ -1569,7 +1578,162 @@ export function printImports(imps) {
     }
     return s;
 }
+// ---- curl_cffi async class: `class ExampleApi(AsyncSession)` with one `async def` per request ----
+const PY_KEYWORDS = new Set([
+    "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue",
+    "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import", "in",
+    "is", "lambda", "match", "case", "nonlocal", "not", "or", "pass", "raise", "return", "try", "type",
+    "while", "with", "yield",
+]);
+// Names the generated method body (or its imports) already uses; an argument must not shadow them.
+const METHOD_LOCALS = new Set([
+    "self", "headers", "cookies", "cookie", "params", "data", "json_data", "response", "multipart",
+    "files", "proxies", "f", "file_contents", "json", "os", "sys", "subprocess", "asyncio", "requests",
+    "AsyncSession", "CurlMime", "MozillaCookieJar", "Path", "quote_plus", "read_headerfile",
+]);
+function toSnakeIdentifier(s) {
+    const id = s
+        .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+        .replace(/[^A-Za-z0-9_]+/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "")
+        .toLowerCase();
+    if (!id) {
+        return null;
+    }
+    return /^[0-9]/.test(id) ? "p_" + id : id;
+}
+function uniqueIdentifier(base, used) {
+    let name = PY_KEYWORDS.has(base) || METHOD_LOCALS.has(base) ? base + "_" : base;
+    for (let n = 2; used.has(name); n++) {
+        name = base + "_" + n;
+    }
+    used.add(name);
+    return name;
+}
+const PY_STR_LITERAL = /^(?:'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*")$/;
+const PY_SCALAR_LITERAL = /^(?:'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?|True|False|None)$/;
+// Top-level scalar entries of the params/data/json_data dicts become keyword arguments whose defaults are
+// the values from the curl command: `'page': '2',` -> `'page': page,` and `page='2'` in the signature.
+// Keys with escapes and values that aren't plain literals (lists, nested dicts, files, env vars) stay as they are.
+function extractArguments(body, used) {
+    const args = [];
+    const lines = body.split("\n");
+    let inDict = false;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!inDict) {
+            inDict = /^(?:params|data|json_data) = \{$/.test(line);
+            continue;
+        }
+        if (line === "}") {
+            inDict = false;
+            continue;
+        }
+        const m = /^ {4}(\S.*?): (.+),$/.exec(line);
+        if (!m || !PY_STR_LITERAL.test(m[1]) || m[1].includes("\\") || !PY_SCALAR_LITERAL.test(m[2])) {
+            continue;
+        }
+        const base = toSnakeIdentifier(m[1].slice(1, -1));
+        if (!base) {
+            continue;
+        }
+        const name = uniqueIdentifier(base, used);
+        args.push(name + "=" + m[2]);
+        lines[i] = "    " + m[1] + ": " + name + ",";
+    }
+    return [lines.join("\n"), args];
+}
+function urlHostAndPath(url) {
+    const m = /^[a-z][a-z0-9+.-]*:\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^/:?#]*)(?::\d*)?([^?#]*)/i.exec(url);
+    return m ? [m[1].toLowerCase(), m[2]] : ["", ""];
+}
+function asyncClassName(url) {
+    const [host] = urlHostAndPath(url);
+    let label = "";
+    if (host && !/^[\d.]+$/.test(host) && !host.startsWith("[")) {
+        const labels = host.replace(/^www\./, "").split(".").filter(Boolean);
+        if (labels.length >= 3 && labels[labels.length - 1].length === 2 && labels[labels.length - 2].length <= 3) {
+            label = labels[labels.length - 3]; // example.co.uk
+        }
+        else {
+            label = labels.length >= 2 ? labels[labels.length - 2] : labels[0] || "";
+        }
+    }
+    const camel = label
+        .split(/[^A-Za-z0-9]+/)
+        .filter(Boolean)
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join("");
+    return /^[A-Za-z]/.test(camel) ? camel + "Api" : "Api" + camel;
+}
+function asyncMethodBase(fn, url) {
+    const [, path] = urlHostAndPath(url);
+    const segments = path
+        .split("/")
+        .map((s) => s.replace(/\.[A-Za-z0-9]{1,5}$/, "")) // login.php -> login
+        .filter((s) => /[A-Za-z]/.test(s) && !/^[0-9a-f-]{16,}$/i.test(s)); // skip ids and uuids
+    const last = segments.length ? toSnakeIdentifier(segments[segments.length - 1]) : null;
+    return fn + "_" + (last || "index");
+}
+function asyncSignature(name, args) {
+    const oneLine = "    async def " + name + "(" + ["self", ...args].join(", ") + "):\n";
+    if (oneLine.length <= 101) {
+        return oneLine;
+    }
+    return "    async def " + name + "(\n" + ["self", ...args].map((a) => "        " + a + ",\n").join("") + "    ):\n";
+}
+function _toPythonCurlCffiAsyncClass(requests, warnings, options) {
+    const imports = new Set(["asyncio"]);
+    const thirdPartyImports = new Set();
+    const methods = [];
+    const methodNames = new Set();
+    let className = "Api";
+    for (const [i, request] of requests.entries()) {
+        const calls = [];
+        let body = requestToPython(request, warnings, imports, thirdPartyImports, options, calls);
+        const { fn, url } = calls[0] || { fn: "get", url: "" };
+        if (i === 0) {
+            className = asyncClassName(url.toString());
+        }
+        const name = uniqueIdentifier(asyncMethodBase(fn, url.toString()), methodNames);
+        let args;
+        [body, args] = extractArguments(body, new Set());
+        body = body.replace(/\n+$/, "\n") + "return response\n";
+        methods.push({ name, code: asyncSignature(name, args) + indent(body, 2) });
+    }
+    let code = printImports(imports) + "\n";
+    const usesMime = thirdPartyImports.delete("curl_cffi.CurlMime");
+    code += "from curl_cffi import AsyncSession" + (usesMime ? ", CurlMime" : "") + "\n";
+    code += printImports(thirdPartyImports);
+    if (imports.has("read_headerfile")) {
+        code += "\n\ndef read_headerfile(filename):\n";
+        code += "    headers = {}\n";
+        code += "    with open(filename) as f:\n";
+        code += "        for line in f:\n";
+        code += "            line = line.split('#', 1)[0].strip()\n";
+        code += "            if line:\n";
+        code += "                [key, value] = line.split(':', 1)\n";
+        code += "                value = value or ''\n";
+        code += "                headers[key.strip()] = value.strip()\n";
+        code += "    return headers\n";
+    }
+    code += "\n\nclass " + className + "(AsyncSession):\n";
+    code += methods.map((m) => m.code).join("\n");
+    code += "\n\nasync def main():\n";
+    code += "    async with " + className + "() as api:\n";
+    for (const m of methods) {
+        code += "        response = await api." + m.name + "()\n";
+        code += "        print(response.status_code)\n";
+    }
+    code += "\n\nif __name__ == '__main__':\n";
+    code += "    asyncio.run(main())\n";
+    return code;
+}
 export function _toPythonCurlCffi(requests, warnings = [], options = {}) {
+    if (options && options.asyncClass) {
+        return _toPythonCurlCffiAsyncClass(requests, warnings, options);
+    }
     const code = [];
     let joinTwoLines = false;
     const imports = new Set();

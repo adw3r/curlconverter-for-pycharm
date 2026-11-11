@@ -17,5 +17,6 @@
   "curl 'https://example.com/' -H $'content-type: text/plain;charset=UTF-8' --data-raw $'line1\\nline2\\ttab \\u2713'",
   "curl -o out.html https://example.com/page",
   "wget https://example.com",
-  "curl"
+  "curl",
+  "curl 'https://shop.example.com/api/cart?item=42&qty=1' -X POST -H 'X-Token: t0k3n' --next https://shop.example.com/api/v2/checkout -d 'pay=card&promo='"
 ]

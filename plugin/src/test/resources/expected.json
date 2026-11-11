@@ -121,6 +121,137 @@
    "error": "no URL specified!"
   },
   {
+   "target": "python-curl-cffi",
+   "curl": "curl 'https://shop.example.com/api/cart?item=42&qty=1' -X POST -H 'X-Token: t0k3n' --next https://shop.example.com/api/v2/checkout -d 'pay=card&promo='",
+   "code": "from curl_cffi import requests\n\nheaders = {\n    'X-Token': 't0k3n',\n}\n\nparams = {\n    'item': '42',\n    'qty': '1',\n}\n\nresponse = requests.post('https://shop.example.com/api/cart', params=params, headers=headers, impersonate='chrome')\n\n\ndata = {\n    'pay': 'card',\n    'promo': '',\n}\n\nresponse = requests.post('https://shop.example.com/api/v2/checkout', data=data, impersonate='chrome')\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def get_items(self, page='2', q='hello world'):\n        headers = {\n            'accept': 'application/json',\n            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',\n            'sec-ch-ua': '\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"',\n        }\n\n        params = {\n            'page': page,\n            'q': q,\n        }\n\n        response = await self.get('https://api.example.com/v1/items', params=params, headers=headers, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.get_items()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": [
+    "URL querystring contains spaces encoded as \"%20\" which will be sent by curl_cffi as \"+\" instead: \"hello%20world\""
+   ]
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/api/login' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7' \\\n  -H 'content-type: application/json' \\\n  -b 'session=abc123; _ga=GA1.2.3.4' \\\n  -H 'origin: https://example.com' \\\n  -H 'priority: u=1, i' \\\n  --data-raw '{\"email\":\"a@b.c\",\"password\":\"p@ss\",\"remember\":true,\"tags\":[1,2,null]}'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def post_login(self, email='a@b.c', password='p@ss', remember=True):\n        cookies = {\n            'session': 'abc123',\n            '_ga': 'GA1.2.3.4',\n        }\n\n        headers = {\n            'accept': '*/*',\n            'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',\n            # Already added when you pass json=\n            # 'content-type': 'application/json',\n            'origin': 'https://example.com',\n            'priority': 'u=1, i',\n            # 'cookie': 'session=abc123; _ga=GA1.2.3.4',\n        }\n\n        json_data = {\n            'email': email,\n            'password': password,\n            'remember': remember,\n            'tags': [\n                1,\n                2,\n                None,\n            ],\n        }\n\n        response = await self.post('https://example.com/api/login', cookies=cookies, headers=headers, json=json_data, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_login()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/upload' -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundaryX7' --data-raw $'------WebKitFormBoundaryX7\\r\\nContent-Disposition: form-data; name=\"field\"\\r\\n\\r\\nvalue\\r\\n------WebKitFormBoundaryX7--\\r\\n'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession, CurlMime\n\n\nclass ExampleApi(AsyncSession):\n    async def post_upload(self):\n        headers = {\n            # curl_cffi sets it with the boundary when you pass multipart=\n            # 'content-type': 'multipart/form-data; boundary=----WebKitFormBoundaryX7',\n        }\n\n        multipart = CurlMime()\n        multipart.addpart(name='field', data=b'value')\n\n        response = await self.post('https://example.com/upload', headers=headers, multipart=multipart, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_upload()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl -i -s -k -X $'POST' -H $'Host: target.local' -H $'Content-Type: application/x-www-form-urlencoded' -H $'Content-Length: 27' -b $'PHPSESSID=deadbeef' --data-binary $'user=admin&pass=it\\'s%20ok' $'https://target.local/login.php'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass TargetApi(AsyncSession):\n    async def post_login(self):\n        cookies = {\n            'PHPSESSID': 'deadbeef',\n        }\n\n        headers = {\n            'Host': 'target.local',\n            'Content-Type': 'application/x-www-form-urlencoded',\n            # 'Content-Length': '27',\n            # 'Cookie': 'PHPSESSID=deadbeef',\n        }\n\n        data = \"user=admin&pass=it's%20ok\"\n\n        response = await self.post(\n            'https://target.local/login.php',\n            cookies=cookies,\n            headers=headers,\n            data=data,\n            verify=False,\n            impersonate='chrome',\n        )\n        return response\n\n\nasync def main():\n    async with TargetApi() as api:\n        response = await api.post_login()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": [
+    "-i is not a supported option",
+    "-s is not a supported option"
+   ]
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/graphql' -X POST -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0' -H 'Accept: */*' -H 'Content-Type: application/json' -H 'Connection: keep-alive' --data-raw '{\"query\":\"{ me { id } }\",\"variables\":{}}'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def post_graphql(self, query='{ me { id } }'):\n        headers = {\n            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0',\n            'Accept': '*/*',\n            # Already added when you pass json=\n            # 'Content-Type': 'application/json',\n            'Connection': 'keep-alive',\n        }\n\n        json_data = {\n            'query': query,\n            'variables': {},\n        }\n\n        response = await self.post('https://example.com/graphql', headers=headers, json=json_data, impersonate='firefox')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_graphql()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl -F 'file=@/tmp/a.png' -F 'name=test' https://example.com/upload",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession, CurlMime\n\n\nclass ExampleApi(AsyncSession):\n    async def post_upload(self):\n        multipart = CurlMime()\n        multipart.addpart(name='file', local_path='/tmp/a.png')\n        multipart.addpart(name='name', data=b'test')\n\n        response = await self.post('https://example.com/upload', multipart=multipart, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_upload()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl -u user:secret -x http://127.0.0.1:8080 -k -L --max-time 30 https://example.com/private",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def get_private(self):\n        proxies = {\n            'http': 'http://127.0.0.1:8080',\n            'https': 'http://127.0.0.1:8080',\n        }\n\n        response = await self.get(\n            'https://example.com/private',\n            proxies=proxies,\n            verify=False,\n            auth=('user', 'secret'),\n            timeout=30,\n            impersonate='chrome',\n        )\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.get_private()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl --data-urlencode 'q=hello world' --data-urlencode 'lang=uk' -G https://example.com/search",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def get_search(self, q='hello world', lang='uk'):\n        params = {\n            'q': q,\n            'lang': lang,\n        }\n\n        response = await self.get('https://example.com/search', params=params, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.get_search()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl -X PUT https://example.com/item/1 -H 'Authorization: Bearer eyJhbGciOi' -d 'a=1' -d 'b=2'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def put_item(self, a='1', b='2'):\n        headers = {\n            'Authorization': 'Bearer eyJhbGciOi',\n            'Content-Type': 'application/x-www-form-urlencoded',\n        }\n\n        data = {\n            'a': a,\n            'b': b,\n        }\n\n        response = await self.put('https://example.com/item/1', headers=headers, data=data, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.put_item()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl https://example.com -H 'X-Custom: a' -H 'X-Custom: b' --compressed --http2",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def get_index(self):\n        headers = {\n            'X-Custom': 'a',\n            'X-Custom': 'b',\n        }\n\n        response = await self.get('https://example.com', headers=headers, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.get_index()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": [
+    "found 2 \"X-Custom\" headers, only the last one will be sent"
+   ]
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/api' -X DELETE",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def delete_api(self):\n        response = await self.delete('https://example.com/api', impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.delete_api()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/form' --data-raw 'a=%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D1%82&b=%E2%9C%93&c='",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def post_form(self, a='привет', b='✓', c=''):\n        data = {\n            'a': a,\n            'b': b,\n            'c': c,\n        }\n\n        response = await self.post('https://example.com/form', data=data, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_form()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/raw' --data-binary @payload.bin -H 'Content-Type: application/octet-stream'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def post_raw(self):\n        headers = {\n            'Content-Type': 'application/octet-stream',\n        }\n\n        with open('payload.bin', 'rb') as f:\n            data = f.read()\n\n        response = await self.post('https://example.com/raw', headers=headers, data=data, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_raw()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/x' -H 'cookie: a=1; b=\"q\"' -H 'referer: https://example.com/' --insecure",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def get_x(self):\n        cookies = {\n            'a': '1',\n            'b': '\"q\"',\n        }\n\n        headers = {\n            # 'cookie': 'a=1; b=\"q\"',\n            'referer': 'https://example.com/',\n        }\n\n        response = await self.get('https://example.com/x', cookies=cookies, headers=headers, verify=False, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.get_x()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl $'https://example.com/\\u043f\\u0440\\u0438?x=\\'1\\''",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def get_index(self):\n        response = await self.get(\"https://example.com/при?x='1'\", impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.get_index()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://example.com/' -H $'content-type: text/plain;charset=UTF-8' --data-raw $'line1\\nline2\\ttab \\u2713'",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def post_index(self):\n        headers = {\n            'content-type': 'text/plain;charset=UTF-8',\n        }\n\n        data = 'line1\\nline2\\ttab ✓'.encode()\n\n        response = await self.post('https://example.com/', headers=headers, data=data, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_index()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl -o out.html https://example.com/page",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def get_page(self):\n        response = await self.get('https://example.com/page', impersonate='chrome')\n\n        with open('out.html', 'wb') as f:\n            f.write(response.content)\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.get_page()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "wget https://example.com",
+   "error": "command should begin with \"curl\" but instead begins with \"wget\"\nwget https://example.com\n^^^^"
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl",
+   "error": "no URL specified!"
+  },
+  {
+   "target": "python-curl-cffi-async",
+   "curl": "curl 'https://shop.example.com/api/cart?item=42&qty=1' -X POST -H 'X-Token: t0k3n' --next https://shop.example.com/api/v2/checkout -d 'pay=card&promo='",
+   "code": "import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n    async def post_cart(self, item='42', qty='1'):\n        headers = {\n            'X-Token': 't0k3n',\n        }\n\n        params = {\n            'item': item,\n            'qty': qty,\n        }\n\n        response = await self.post('https://shop.example.com/api/cart', params=params, headers=headers, impersonate='chrome')\n        return response\n\n    async def post_checkout(self, pay='card', promo=''):\n        data = {\n            'pay': pay,\n            'promo': promo,\n        }\n\n        response = await self.post('https://shop.example.com/api/v2/checkout', data=data, impersonate='chrome')\n        return response\n\n\nasync def main():\n    async with ExampleApi() as api:\n        response = await api.post_cart()\n        print(response.status_code)\n        response = await api.post_checkout()\n        print(response.status_code)\n\n\nif __name__ == '__main__':\n    asyncio.run(main())\n",
+   "warnings": []
+  },
+  {
    "target": "python",
    "curl": "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
    "code": "import requests\n\nheaders = {\n    'accept': 'application/json',\n    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',\n    'sec-ch-ua': '\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"',\n}\n\nparams = {\n    'page': '2',\n    'q': 'hello world',\n}\n\nresponse = requests.get('https://api.example.com/v1/items', params=params, headers=headers)\n",
@@ -246,6 +377,12 @@
    "target": "python",
    "curl": "curl",
    "error": "no URL specified!"
+  },
+  {
+   "target": "python",
+   "curl": "curl 'https://shop.example.com/api/cart?item=42&qty=1' -X POST -H 'X-Token: t0k3n' --next https://shop.example.com/api/v2/checkout -d 'pay=card&promo='",
+   "code": "import requests\n\nheaders = {\n    'X-Token': 't0k3n',\n}\n\nparams = {\n    'item': '42',\n    'qty': '1',\n}\n\nresponse = requests.post('https://shop.example.com/api/cart', params=params, headers=headers)\n\n\ndata = {\n    'pay': 'card',\n    'promo': '',\n}\n\nresponse = requests.post('https://shop.example.com/api/v2/checkout', data=data)\n",
+   "warnings": []
   },
   {
    "target": "python-http",
@@ -377,6 +514,15 @@
    "error": "no URL specified!"
   },
   {
+   "target": "python-http",
+   "curl": "curl 'https://shop.example.com/api/cart?item=42&qty=1' -X POST -H 'X-Token: t0k3n' --next https://shop.example.com/api/v2/checkout -d 'pay=card&promo='",
+   "code": "import http.client\n\nconn = http.client.HTTPSConnection('shop.example.com')\nheaders = {\n    'X-Token': 't0k3n',\n}\nconn.request('POST', '/api/cart?item=42&qty=1', headers=headers)\nresponse = conn.getresponse()\n",
+   "warnings": [
+    "--next is not a supported option",
+    "got 2 curl requests, only converting the first one"
+   ]
+  },
+  {
    "target": "go",
    "curl": "curl 'https://api.example.com/v1/items?page=2&q=hello%20world' -H 'accept: application/json' -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36' -H 'sec-ch-ua: \"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"'",
    "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"GET\", \"https://api.example.com/v1/items?page=2&q=hello%20world\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"accept\", \"application/json\")\n\treq.Header.Set(\"user-agent\", \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36\")\n\treq.Header.Set(\"sec-ch-ua\", `\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"`)\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
@@ -500,6 +646,15 @@
    "target": "go",
    "curl": "curl",
    "error": "no URL specified!"
+  },
+  {
+   "target": "go",
+   "curl": "curl 'https://shop.example.com/api/cart?item=42&qty=1' -X POST -H 'X-Token: t0k3n' --next https://shop.example.com/api/v2/checkout -d 'pay=card&promo='",
+   "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tclient := &http.Client{}\n\treq, err := http.NewRequest(\"POST\", \"https://shop.example.com/api/cart?item=42&qty=1\", nil)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\treq.Header.Set(\"X-Token\", \"t0k3n\")\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tdefer resp.Body.Close()\n\tbodyText, err := io.ReadAll(resp.Body)\n\tif err != nil {\n\t\tlog.Fatal(err)\n\t}\n\tfmt.Printf(\"%s\\n\", bodyText)\n}\n",
+   "warnings": [
+    "--next is not a supported option",
+    "got 2 curl requests, only converting the first one"
+   ]
   }
  ]
 }

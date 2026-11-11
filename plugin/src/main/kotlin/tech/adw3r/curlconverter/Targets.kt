@@ -14,6 +14,7 @@ object Targets {
     /** Same ids as js/src/entry.js; a test checks the bundle knows every one. */
     val ALL: List<Target> = listOf(
         Target("python-curl-cffi", "Python (curl_cffi)"),
+        Target("python-curl-cffi-async", "Python (curl_cffi, async class)"),
         Target("python", "Python (requests)"),
         Target("python-http", "Python (http.client)"),
         Target("ansible", "Ansible"),

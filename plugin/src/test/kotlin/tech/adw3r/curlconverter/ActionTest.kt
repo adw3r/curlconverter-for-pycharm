@@ -109,6 +109,20 @@ class ActionTest : BasePlatformTestCase() {
         assertTrue(myFixture.editor.document.text, myFixture.editor.document.text.contains("impersonate='safari'"))
     }
 
+    fun testAsyncClassTarget() {
+        CurlConverterSettings.getInstance().state.target = "python-curl-cffi-async"
+        myFixture.configureByText("api.py", "curl 'https://api.example.com/v1/items?page=2&pageSize=10' -X DELETE<caret>\n")
+        val presentation = myFixture.testAction(ConvertCurlAction())
+        assertEquals("Convert cURL to Python (curl_cffi, async class)", presentation.text)
+        waitFor("conversion") { !myFixture.editor.document.text.contains("curl '") }
+        val text = myFixture.editor.document.text
+        assertTrue(text, text.startsWith("import asyncio\n\nfrom curl_cffi import AsyncSession\n\n\nclass ExampleApi(AsyncSession):\n"))
+        assertTrue(text, text.contains("    async def delete_items(self, page='2', page_size='10'):\n"))
+        assertTrue(text, text.contains("            'pageSize': page_size,\n"))
+        assertTrue(text, text.contains("        response = await self.delete('https://api.example.com/v1/items', params=params, impersonate='chrome')\n        return response\n"))
+        assertTrue(text, text.contains("    async with ExampleApi() as api:\n        response = await api.delete_items()\n"))
+    }
+
     fun testRequestsTargetStillAvailable() {
         CurlConverterSettings.getInstance().state.target = "python"
         myFixture.configureByText("a.py", "curl https://example.com/x<caret>")
