@@ -13,7 +13,7 @@ permissions:
 jobs:
   bundle:
     name: curlconverter bundle
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: js
@@ -46,7 +46,7 @@ jobs:
 
   plugin:
     name: plugin (PyCharm tests, Plugin Verifier)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: plugin
@@ -81,7 +81,7 @@ jobs:
     name: GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [bundle, plugin]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
