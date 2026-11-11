@@ -7,7 +7,7 @@ Paste a `curl` command into PyCharm, right-click, and get Python code. The plugi
 [curlconverter.com](https://curlconverter.com) ([curlconverter](https://github.com/curlconverter/curlconverter)
 4.12.0) and runs it **inside the IDE, offline**. By default it writes Python for
 [curl_cffi](https://github.com/lexiforest/curl_cffi), with browser impersonation and file uploads as
-`CurlMime`. Python (requests) and 46 other targets are one setting away.
+`CurlMime`. An async variant (an `AsyncSession` subclass), Python (requests) and 46 other targets are one setting away.
 
 ```bash
 curl 'https://example.com/upload' -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0' \
@@ -92,7 +92,7 @@ None by default. **Settings → Keymap**, search for `Convert cURL`, then *Add K
 
 | Setting | Default | |
 |---|---|---|
-| Convert to | Python (curl_cffi) | Also Python (requests), Python (http.client), Go, Node.js, PHP, Rust, … (48 targets) |
+| Convert to | Python (curl_cffi) | Also Python (curl_cffi, async class), Python (requests), Python (http.client), Go, Node.js, PHP, Rust, … (49 targets) |
 | curl_cffi impersonate | auto | `auto` reads the copied User-Agent: Firefox → `firefox`, Safari → `safari`/`safari_ios`, Android Chrome → `chrome_android`, anything else → `chrome`. Or pick one, or `none` |
 | Engine | Automatic | JCEF (the IDE's built-in Chromium), falling back to Node.js |
 | Node.js executable | empty | Only for the Node.js engine; empty means `node` from PATH |
@@ -122,6 +122,27 @@ rewriting the generated text. What differs from the Requests output, and why (ch
 [`js/test/curl_cffi_e2e.py`](js/test/curl_cffi_e2e.py) checks this end to end. Each case is sent to a local
 recording server twice: once by the real `curl`, once by the generated curl_cffi code. The script then
 compares method, path, headers, Content-Type and body; multipart bodies are compared part by part.
+
+### Python (curl_cffi, async class)
+
+The same generator, wrapped in a class: `class ExampleApi(AsyncSession)` (named after the host) with one
+`async def` per request (`--next` adds more), named after the method and the last path segment
+(`POST /api/addReview` → `post_add_review`). Plain values of `params`, `data` and `json_data` become keyword
+arguments whose defaults are the values from the curl command; nested values, files and repeated keys stay
+inline. A `main()` that calls every method with the defaults is generated too, and the e2e test runs every
+case through it as well.
+
+```python
+class ExampleApi(AsyncSession):
+    async def get_items(self, page='2', page_size='10'):
+        params = {
+            'page': page,
+            'pageSize': page_size,
+        }
+
+        response = await self.get('https://api.example.com/v1/items', params=params, impersonate='chrome')
+        return response
+```
 
 ## How it works
 
@@ -212,6 +233,7 @@ CI runs all of the above on every push.
 - **Любой файл:** курсор на curl (или выделение) → тот же пункт контекстного меню.
 - **Из буфера сразу в scratch:** Tools → curlconverter → **New Python (curl_cffi) Scratch from Clipboard cURL**.
 - **Хоткей:** Settings → Keymap → `Convert cURL`.
+- **Async-класс:** Settings → Tools → curlconverter → Convert to → **Python (curl_cffi, async class)**: класс от `AsyncSession`, по методу `async def` на каждый запрос, значения из `params`/`data`/`json_data` становятся аргументами с дефолтами из curl.
 - **Откуда копировать:** DevTools → Network → Copy → **Copy as cURL (bash)**, или Burp → **Copy as curl command (bash)**.
 
 **Настройки:** Settings → Tools → curlconverter. Там выбирается язык (requests и ещё 46 вариантов, всего 48), режим

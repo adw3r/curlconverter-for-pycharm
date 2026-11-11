@@ -7,7 +7,7 @@ const cc = require("curlconverter");
 // Our curl_cffi generator, run on the same native tree-sitter parser as the official package.
 const { toPythonCurlCffiWarn } = await import("../src/curl_cffi/python.js");
 const cases = JSON.parse(readFileSync(new URL("./cases.json", import.meta.url), "utf8"));
-const fns = { "python-curl-cffi": (c) => toPythonCurlCffiWarn(c, []), python: cc.toPythonWarn, "python-http": cc.toPythonHttpWarn, go: cc.toGoWarn };
+const fns = { "python-curl-cffi": (c) => toPythonCurlCffiWarn(c, []), "python-curl-cffi-async": (c) => toPythonCurlCffiWarn(c, [], { asyncClass: true }), python: cc.toPythonWarn, "python-http": cc.toPythonHttpWarn, go: cc.toGoWarn };
 const out = [];
 for (const [target, fn] of Object.entries(fns)) for (const curl of cases) {
   let result;

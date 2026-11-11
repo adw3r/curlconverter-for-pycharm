@@ -5,6 +5,8 @@ import { toPythonCurlCffiWarn } from "./curl_cffi/python.js";
 // [id (same as the curlconverter CLI --language), label, generator]
 const TARGETS = [
   ["python-curl-cffi", "Python (curl_cffi)", (curl, warnings, options) => toPythonCurlCffiWarn(curl, warnings, options)],
+  ["python-curl-cffi-async", "Python (curl_cffi, async class)",
+    (curl, warnings, options) => toPythonCurlCffiWarn(curl, warnings, { ...options, asyncClass: true })],
   ["python", "Python (requests)", cc.toPythonWarn],
   ["python-http", "Python (http.client)", cc.toPythonHttpWarn],
   ["ansible", "Ansible", cc.toAnsibleWarn],
