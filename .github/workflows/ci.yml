@@ -98,13 +98,24 @@ jobs:
         run: |
           awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
           test -s notes.md
+      - name: updatePlugins.xml (custom plugin repository for IDE auto-updates)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zips=(dist/*.zip)
+          test ${#zips[@]} -eq 1 || { echo "expected one zip, got: ${zips[*]}"; exit 1; }
+          # Change notes for the IDE's update dialog: the same CHANGELOG section, rendered to HTML by GitHub.
+          gh api markdown -f mode=gfm -f context="$GITHUB_REPOSITORY" -F text=@notes.md > notes.html || : > notes.html
+          bash .github/scripts/update-plugins-xml.sh "${zips[0]}" "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" notes.html > updatePlugins.xml
+          python3 -c 'import sys, xml.etree.ElementTree as ET; ET.parse(sys.argv[1])' updatePlugins.xml
+          cat updatePlugins.xml
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The release may already exist (created from the GitHub UI/API together with its tag): refresh the zip.
+          # The release may already exist (created from the GitHub UI/API together with its tag): refresh the assets.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" dist/*.zip --clobber
+            gh release upload "$GITHUB_REF_NAME" dist/*.zip updatePlugins.xml --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/*.zip --title "$GITHUB_REF_NAME" --notes-file notes.md
+            gh release create "$GITHUB_REF_NAME" dist/*.zip updatePlugins.xml --title "$GITHUB_REF_NAME" --notes-file notes.md
           fi
